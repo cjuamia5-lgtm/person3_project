@@ -1,0 +1,9 @@
+{
+    "sha256": "abc123samplehash",
+    "malicious_votes": 6,
+    "suspicious_votes": 2,
+    "total_engines": 72,
+    "detection_score": "6/72",
+    "malware_family": "RedLine",
+    "tags": ["stealer", "trojan"]
+}

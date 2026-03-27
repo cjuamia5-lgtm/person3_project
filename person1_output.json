@@ -1,0 +1,15 @@
+{
+    "filename": "sample.bin",
+    "hashes": {
+        "SHA256": "abc123samplehash"
+    },
+    "suspicious_imports": {
+        "total_hits": 9,
+        "categories_flagged": 3,
+        "matches": {
+            "Network": ["socket", "connect"],
+            "Shell Execution": ["system"],
+            "Persistence": ["rc.local"]
+        }
+    }
+}
