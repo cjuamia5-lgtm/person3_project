@@ -171,10 +171,11 @@ def get_verdict(score):
 # -----------------------------
 # Main function
 # -----------------------------
-def build_final_scoring_report():
-    p1 = load_json_file("person1_output.json")
-    p2 = load_json_file("person2_output.json")
-
+def calculate_verdict(p1, p2):
+    """
+    Takes dictionaries directly (instead of reading JSON files) and formates the out put to amtch what
+    app.py expects.
+    """
     final_score = 0
     reasons = []
 
@@ -185,40 +186,38 @@ def build_final_scoring_report():
     p2_score, p2_reasons = score_person2_data(p2)
     final_score += p2_score
     reasons.extend(p2_reasons)
-
+    
     final_score, filter_reasons = reduce_false_positives(final_score, p1, p2)
+
     reasons.extend(filter_reasons)
 
-    verdict = get_verdict(final_score)
+    verdict_str = get_verdict(final_score)
+    confidence = min(final_score, 100)
 
-    report = {
-        "filename": p1.get("filename", "unknown"),
-        "sha256": p1.get("hashes", {}).get("SHA256", p2.get("sha256", "unknown")),
-        "final_score": final_score,
-        "verdict": verdict,
-        "person1_summary": {
-            "total_hits": p1.get("suspicious_imports", {}).get("total_hits", 0),
-            "categories_flagged": p1.get("suspicious_imports", {}).get("categories_flagged", 0)
-        },
-        "person2_summary": {
-            "malicious_votes": p2.get("malicious_votes", 0),
-            "suspicious_votes": p2.get("suspicious_votes", 0),
-            "malware_family": p2.get("malware_family"),
-            "tags": p2.get("tags", [])
-        },
-        "reasons": reasons
+    # Convert string reasons into structured risk_factors for the UI
+    risk_factors = []
+    for reason in reasons:
+        weight = 0 
+        if "(+" in reason:
+            weight = int(reason.split("(+")[1].replace(")", "").strip())
+        elif "(-" in reason:
+            weight = int(reason.split("(-")[1].replace(")", "").strip()) * -1
+
+        risk_factors.append({
+          "factor": reason.split(" (")[0],
+          "weight": weight,
+          "detail": reason
+        })  
+        
+    recommendation = "File is safe for execution."
+    if verdict_str == "Malicious":
+        recommendation = "Do not execute! Immediate quarantine recommended."
+    elif verdict_str == "Suspicious":
+        recommendation = "Proceed with caution. Consider running in a sandbox first."
+
+    return {
+        "verdict": verdict_str,
+        "confidence": confidence,
+        "risk_factors": risk_factors,
+        "recommendation": recommendation
     }
-
-    return report
-
-
-# -----------------------------
-# Run script
-# -----------------------------
-if __name__ == "__main__":
-    report = build_final_scoring_report()
-    print(json.dumps(report, indent=4))
-
-    # Save output to file
-    with open("judge_output.json", "w") as f:
-        json.dump(report, f, indent=4)
